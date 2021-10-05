@@ -1,0 +1,774 @@
+{% extends 'basic.html' %}
+{% load static %}
+
+{% block content %}
+<div class="header">
+    <p class="header-letters">SANS 347 HAZ CATEGORY CLASSIFICATION</p>
+</div>
+<div class="total-container">
+
+    <div class="line">
+        <div class="main-container">
+        {% csrf_token %}
+            <div class="form-group">
+                <label class="form-label" for="equip_type">Type of Equipment:</label>
+                <select onchange="disable()" type="text" name="equip_type" class="form-control col-sm-8" id ="equip_type">
+                    <option value="none">Please select the Equipment type</option>
+                    <option value="piping">Piping</option>
+                    <option value="pressure_vessel">Pressure Vessel</option>
+                    <option value="steam_generator">Steam generator</option>
+                    <option value="transportable">Transportable Pressure equipment</option>
+                </select>
+
+                <label class="form-label" for="fluid_state">State of Fluid:</label>
+                <select type="text" name="fluid_state" class="form-control col-sm-8" id="fluid_state">
+                    <option value="none">Please select the Fluid state</option>
+                    <option value="gas">Gas</option>
+                    <option value="liquid">Liquid</option>
+                </select>
+
+                <label class="form-label" for="fluid_group">Fluid Group:</label>
+                <select type="text" name="fluid_group" class="form-control col-sm-8" id="fluid_group">
+                    <option value="none">Please select the Fluid Group</option>
+                    <option value="fluid_group1">Fluid Group 1</option>
+                    <option value="fluid_group2">Fluid Group 2</option>
+                </select>
+
+                <p>Fluid group 1 material</p>
+                <div class="fluid-kind">
+                    <p>- Explosive</p>
+                    <p>- Highly Flammable</p>
+                    <p>- Flammable (max °C above flash point)</p>
+                    <p>- Corrosive</p>
+                    <p>- Toxic</p>
+                    <p>- Oxidizing</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="volumn" id="l">Volumn(L):</label>
+                    <label for="volumn" id="dn">Nominal Size(DN):</label>
+                    <input type="number" class="form-control col-sm-4" name="volumn" id="volumn">
+                </div>
+
+                <div class="form-group">
+                    <label for="pressure">Design Pressure(kPa):</label>
+                    <input type="number" class="form-control col-sm-4" name="pressure" id="pressure">
+                </div>
+
+            </div>
+
+            <button class="calc-button" onclick="myfunction()">Calculate</button>
+            <p class="warnning">Please insert correct values</p>
+            <div class="total-value">
+                <p class="result0">SANS 347 Hazard Category: “Not Categorized”</P>
+                <p class="result1">SANS 347 Hazard Category: “I”</P>
+                <p class="result2">SANS 347 Hazard Category: “II”</P>
+                <p class="result3">SANS 347 Hazard Category: “III”</P>
+                <p class="result4">SANS 347 Hazard Category: “IV”</P>
+                <p class="result5">SANS 347 Hazard Category: “SEP”</P>
+            </div>  
+        </div>
+
+        <div class="graph-container">
+            <canvas id="line" width="550" height="370">
+        </div>
+    </div>
+    
+    
+</div>
+<script type='text/javascript' src='https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js'></script>
+<script type='text/javascript'>
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+const csrftoken = getCookie('csrftoken');
+
+function disable(){
+    var equip_type = $('#equip_type').val();
+    var fluid_state = $('#fluid_state').val();
+    var fluid_group = $('#fluid_group').val();
+    var volumn = $('#volumn').val();
+    var pressure = $('#pressure').val();
+
+    if(equip_type == 'steam_generator'){
+        $('#fluid_state').prop("disabled", true);
+        $('#fluid_group').prop("disabled", true);
+    }
+    else if(equip_type == 'piping'){
+        $('#l').hide();
+        $('#dn').show();
+        $('#fluid_state').attr("disabled", false);
+        $('#fluid_group').attr("disabled", false);
+    }
+    else{
+        $('#fluid_state').attr("disabled", false);
+        $('#fluid_group').attr("disabled", false);
+        $('#dn').hide();
+        $('#l').show();
+    }
+}
+
+function convert_x(a){
+    return 100 * (Math.log10(a) + 1) + 50;
+}
+
+function convert_x1(a){
+    return 100 * (Math.log10(a)) + 50
+}
+
+function convert_y(a){
+    return 370 - (50 * (Math.log10(a) + 1) + 20);
+}
+
+function axis_y(a){
+    return 370 - (50 * (Math.log10(a) + 1) + 20 - 12);
+}
+
+function axis_x(a){
+    return 100 * (Math.log10(a) + 1) + 45;
+}
+
+function not_regulate(){
+    var c = document.getElementById("line");    
+    var ctx = c.getContext("2d");
+    ctx.beginPath();
+    ctx.moveTo(convert_x(0.1), convert_y(50));
+    ctx.lineTo(convert_x(10000), convert_y(50));
+    ctx.stroke();
+}
+
+function axis_draw(){
+    var c = document.getElementById("line");    
+    var ctx = c.getContext("2d");
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(0.1), convert_y(1000000));
+    ctx.lineTo(convert_x(0.1), convert_y(0.1));
+    ctx.lineTo(convert_x(10000), convert_y(0.1));
+    ctx.stroke();
+
+    ctx.textAlign = "start"
+    ctx.textBaseline = "middle"
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#d3d3d3";
+    ctx.fillText("0.1",convert_x(0.1), axis_y(0.1));
+    ctx.fillText("1",convert_x(1), axis_y(0.1));
+    ctx.fillText("10",convert_x(10), axis_y(0.1));
+    ctx.fillText("100",convert_x(100), axis_y(0.1));
+    ctx.fillText("1000",convert_x(1000), axis_y(0.1));
+    ctx.fillStyle = "#ff6701";
+    ctx.fillText("Not regulated",convert_x(20), convert_y(3));
+
+    ctx.textAlign = "end"
+    ctx.textBaseline = "middle"
+    ctx.fillStyle = "#d3d3d3";
+    ctx.fillText("0.1",axis_x(0.1), convert_y(0.1));
+    ctx.fillText("1",axis_x(0.1), convert_y(1));
+    ctx.fillText("10",axis_x(0.1), convert_y(10));
+    ctx.fillText("100",axis_x(0.1), convert_y(100));
+    ctx.fillText("1000",axis_x(0.1), convert_y(1000));
+    ctx.fillText("10000",axis_x(0.1), convert_y(10000));
+    ctx.fillText("100000",axis_x(0.1), convert_y(100000));
+    ctx.fillStyle = "#ff6701";
+    ctx.fillText("50",axis_x(0.1), convert_y(50));
+}
+
+function axis_draw1(){
+    var c = document.getElementById("line");    
+    var ctx = c.getContext("2d");
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(0.1), convert_y(1000000));
+    ctx.lineTo(convert_x(0.1), convert_y(0.1));
+    ctx.lineTo(convert_x(10000), convert_y(0.1));
+    ctx.stroke();
+
+    ctx.textAlign = "start"
+    ctx.textBaseline = "middle"
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#d3d3d3";
+    ctx.fillText("1",convert_x1(1), axis_y(0.1));
+    ctx.fillText("10",convert_x1(10), axis_y(0.1));
+    ctx.fillText("100",convert_x1(100), axis_y(0.1));
+    ctx.fillText("1000",convert_x1(1000), axis_y(0.1));
+    ctx.fillText("10000",convert_x1(10000), axis_y(0.1));
+    ctx.fillText("100000",convert_x1(100000), axis_y(0.1));
+    ctx.fillStyle = "#ff6701";
+    ctx.fillText("Not regulated",convert_x(20), convert_y(3));
+
+    ctx.textAlign = "end"
+    ctx.textBaseline = "middle"
+    ctx.fillStyle = "#d3d3d3";
+    ctx.fillText("0.1",axis_x(0.1), convert_y(0.1));
+    ctx.fillText("1",axis_x(0.1), convert_y(1));
+    ctx.fillText("10",axis_x(0.1), convert_y(10));
+    ctx.fillText("100",axis_x(0.1), convert_y(100));
+    ctx.fillText("1000",axis_x(0.1), convert_y(1000));
+    ctx.fillText("10000",axis_x(0.1), convert_y(10000));
+    ctx.fillText("100000",axis_x(0.1), convert_y(100000));
+    ctx.fillStyle = "#ff6701";
+    ctx.fillText("50",axis_x(0.1), convert_y(50));
+}
+
+function dot(a, b){
+    var c = document.getElementById("line");
+    var ctx = c.getContext("2d");
+    ctx.beginPath();
+    ctx.arc(convert_x(a), convert_y(b), 5, 0, 2 * Math.PI);
+    ctx.fillStyle = "#ff6701";
+    ctx.fill();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "black";
+    ctx.stroke();
+}
+
+function dot1(a, b){
+    var c = document.getElementById("line");
+    var ctx = c.getContext("2d");
+    ctx.beginPath();
+    ctx.arc(convert_x1(a), convert_y(b), 5, 0, 2 * Math.PI);
+    ctx.fillStyle = "#ff6701";
+    ctx.fill();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "black";
+    ctx.stroke();
+}
+
+function figure1(volumn, pressure){
+    var c = document.getElementById("line");
+    var ctx = c.getContext("2d");
+    ctx.clearRect(0, 0, 550, 370);
+
+    not_regulate();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(0.1), convert_y(100000));
+    ctx.lineTo(convert_x(1), convert_y(100000));
+    ctx.lineTo(convert_x(2000), convert_y(50));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(0.1), convert_y(20000));
+    ctx.lineTo(convert_x(1), convert_y(20000));
+    ctx.lineTo(convert_x(400), convert_y(50));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(1), convert_y(5000));
+    ctx.lineTo(convert_x(100), convert_y(50));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(1), convert_y(2500));
+    ctx.lineTo(convert_x(50), convert_y(50));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(1), convert_y(20000));
+    ctx.lineTo(convert_x(1), convert_y(2500));
+    ctx.stroke();
+
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#ff6701";
+    ctx.textAlign = "start";
+    ctx.textBaseline = "middle";
+    ctx.fillText("I",convert_x(60), convert_y(60));
+    ctx.fillText("II",convert_x(120), convert_y(60));
+    ctx.fillText("III",convert_x(600), convert_y(60));
+    ctx.fillText("IV",convert_x(1200), convert_y(2000));
+    ctx.fillText("SEP",convert_x(0.2), convert_y(1000));
+
+    ctx.fillText("50",convert_x(50), axis_y(0.1));
+    ctx.fillText("400",convert_x(400), axis_y(0.1));
+    ctx.fillText("2000",convert_x(2000), axis_y(0.1));
+    ctx.textAlign = "end"
+    ctx.fillText("20000",axis_x(0.1), convert_y(20000));
+    
+    axis_draw();
+    dot(volumn, pressure);
+}
+
+function figure2(volumn, pressure){
+    var c = document.getElementById("line");
+    var ctx = c.getContext("2d");
+    ctx.clearRect(0, 0, 550, 370);
+    
+    not_regulate();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(0.1), convert_y(300000));
+    ctx.lineTo(convert_x(1), convert_y(300000));
+    ctx.lineTo(convert_x(750), convert_y(400));
+    ctx.lineTo(convert_x(10000), convert_y(400));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(0.1), convert_y(100000));
+    ctx.lineTo(convert_x(1), convert_y(100000));
+    ctx.lineTo(convert_x(2000), convert_y(50));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(1), convert_y(20000));
+    ctx.lineTo(convert_x(400), convert_y(50));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(1), convert_y(5000));
+    ctx.lineTo(convert_x(100), convert_y(50));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(1), convert_y(100000));
+    ctx.lineTo(convert_x(1), convert_y(5000));
+    ctx.stroke();
+
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#ff6701";
+    ctx.textAlign = "start";
+    ctx.textBaseline = "middle";
+    ctx.fillText("I",convert_x(140), convert_y(60));
+    ctx.fillText("II",convert_x(500), convert_y(60));
+    ctx.fillText("III",convert_x(2500), convert_y(60));
+    ctx.fillText("IV",convert_x(2500), convert_y(10000));
+    ctx.fillText("SEP",convert_x(0.2), convert_y(1000));
+
+    ctx.fillText("750",convert_x(750), axis_y(0.1));
+    ctx.fillText("400",convert_x(400), axis_y(0.1));
+    ctx.fillText("2000",convert_x(2000), axis_y(0.1));
+    ctx.textAlign = "end"
+    ctx.fillText("300000",axis_x(0.1), convert_y(300000));
+
+    axis_draw();
+    dot(volumn, pressure);
+}
+
+function figure3(volumn, pressure){
+    var c = document.getElementById("line");
+    var ctx = c.getContext("2d");
+    ctx.clearRect(0, 0, 550, 370);
+   
+    not_regulate();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(0.1), convert_y(50000));
+    ctx.lineTo(convert_x(10000), convert_y(50000));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(20), convert_y(1000));
+    ctx.lineTo(convert_x(10000), convert_y(1000));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(1), convert_y(1000000));
+    ctx.lineTo(convert_x(1), convert_y(20000));
+    ctx.lineTo(convert_x(400), convert_y(50));
+    ctx.stroke();
+
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#ff6701";
+    ctx.textAlign = "start";
+    ctx.textBaseline = "middle";
+    ctx.fillText("I",convert_x(2000), convert_y(200));
+    ctx.fillText("II",convert_x(2000), convert_y(6000));
+    ctx.fillText("III",convert_x(2000), convert_y(100000));
+    ctx.fillText("II",convert_x(0.2), convert_y(100000));
+    ctx.fillText("SEP",convert_x(0.2), convert_y(1000));
+
+    ctx.fillText("20",convert_x(20), axis_y(0.1));
+    ctx.fillText("400",convert_x(400), axis_y(0.1));
+    ctx.textAlign = "end"
+    ctx.fillText("50000",axis_x(0.1), convert_y(50000));
+
+    axis_draw();
+    dot(volumn, pressure);
+}
+
+function figure4(volumn, pressure){
+    var c = document.getElementById("line");    
+    var ctx = c.getContext("2d");
+    ctx.clearRect(0, 0, 550, 370);
+    
+    not_regulate();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(0.1), convert_y(100000));
+    ctx.lineTo(convert_x(10), convert_y(100000));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(20), convert_y(50000));
+    ctx.lineTo(convert_x(100000), convert_y(50000));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(10), convert_y(1000000));
+    ctx.lineTo(convert_x(10), convert_y(100000));
+    ctx.lineTo(convert_x(1000), convert_y(1000));
+    ctx.lineTo(convert_x(100000), convert_y(1000));
+    ctx.stroke();
+
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#ff6701";
+    ctx.textAlign = "start";
+    ctx.textBaseline = "middle";
+    ctx.fillText("II",convert_x(2500), convert_y(100000));
+    ctx.fillText("I",convert_x(2500), convert_y(10000));
+    ctx.fillText("I",convert_x(2), convert_y(200000));
+    ctx.fillText("SEP",convert_x(3), convert_y(1000));
+
+    ctx.fillText("20",convert_x(20), axis_y(0.1));
+    ctx.textAlign = "end"
+    ctx.fillText("50000", axis_x(0.1), convert_y(50000))
+
+    axis_draw();
+    dot(volumn, pressure);
+}
+
+function figure5(volumn, pressure){
+    var c = document.getElementById("line");    
+    var ctx = c.getContext("2d");
+    ctx.clearRect(0, 0, 550, 370);
+    
+    not_regulate();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(2), convert_y(1000000));
+    ctx.lineTo(convert_x(2), convert_y(2500));
+    ctx.lineTo(convert_x(100), convert_y(50));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(2), convert_y(3200));
+    ctx.lineTo(convert_x(93.75), convert_y(3200));
+    ctx.lineTo(convert_x(1000), convert_y(300));
+    ctx.lineTo(convert_x(1000), convert_y(50));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(6.25), convert_y(3200));
+    ctx.lineTo(convert_x(400), convert_y(50));
+    ctx.stroke();
+
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#ff6701";
+    ctx.textAlign = "start";
+    ctx.textBaseline = "middle";
+    ctx.fillText("I",convert_x(0.2), convert_y(1500));
+    ctx.fillText("II",convert_x(6), convert_y(1500));
+    ctx.fillText("III",convert_x(60), convert_y(1500));
+    ctx.fillText("IV",convert_x(1500), convert_y(10000));
+
+    ctx.fillText("2",convert_x(2), axis_y(0.1));
+    ctx.fillText("6.25",convert_x(6.25), axis_y(0.1));
+    ctx.fillText("93.75",convert_x(93.75), axis_y(0.25));
+    ctx.fillText("400",convert_x(400), axis_y(0.1));
+    ctx.textAlign = "end";
+    ctx.font = "10px Arial";
+    ctx.fillText("2500",axis_x(0.1), convert_y(2000));
+    ctx.fillText("3200",axis_x(0.1), convert_y(3200));
+
+    axis_draw();
+    dot(volumn, pressure);
+}
+
+function figure6(volumn, pressure){
+    var c = document.getElementById("line");    
+    var ctx = c.getContext("2d");
+    ctx.clearRect(0, 0, 550, 370);
+    
+    not_regulate();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(25), convert_y(1000000));
+    ctx.lineTo(convert_x(25), convert_y(50));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(25), convert_y(4000));
+    ctx.lineTo(convert_x(100), convert_y(1000));
+    ctx.lineTo(convert_x(100), convert_y(50));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(100), convert_y(1000000));
+    ctx.lineTo(convert_x(100), convert_y(3500));
+    ctx.lineTo(convert_x(350), convert_y(1000));
+    ctx.lineTo(convert_x(350), convert_y(50));
+    ctx.stroke();
+
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#ff6701";
+    ctx.textAlign = "start";
+    ctx.textBaseline = "middle";
+    ctx.fillText("I",convert_x(40), convert_y(300));
+    ctx.fillText("II",convert_x(150), convert_y(300));
+    ctx.fillText("III",convert_x(600), convert_y(300));
+    ctx.fillText("SEP",convert_x(0.2), convert_y(1500));
+
+    ctx.fillText("25",convert_x(25), axis_y(0.1));
+    ctx.fillText("350",convert_x(350), axis_y(0.1));
+    ctx.textAlign = "end";
+    ctx.fillText("2000",axis_x(0.1), convert_y(2000));
+    ctx.fillText("3500",axis_x(0.1), convert_y(3500));
+
+    axis_draw();
+    dot(volumn, pressure);
+}
+
+function figure7(volumn, pressure){
+    var c = document.getElementById("line");    
+    var ctx = c.getContext("2d");
+    ctx.clearRect(0, 0, 550, 370);
+    
+    not_regulate();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x1(32), convert_y(1000000));
+    ctx.lineTo(convert_x1(32), convert_y(3125));
+    ctx.lineTo(convert_x1(2000), convert_y(50));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x1(100), convert_y(1000000));
+    ctx.lineTo(convert_x1(100), convert_y(3500));
+    ctx.lineTo(convert_x1(7000), convert_y(50));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x1(250), convert_y(1000000));
+    ctx.lineTo(convert_x1(250), convert_y(2000));
+    ctx.lineTo(convert_x1(10000), convert_y(50));
+    ctx.stroke();
+
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#ff6701";
+    ctx.textAlign = "start";
+    ctx.textBaseline = "middle";
+    ctx.fillText("I",convert_x1(50), convert_y(10000));
+    ctx.fillText("II",convert_x1(150), convert_y(10000));
+    ctx.fillText("III",convert_x1(2000), convert_y(10000));
+    ctx.fillText("SEP",convert_x1(4), convert_y(10000));
+
+    ctx.fillText("32",convert_x1(32), axis_y(0.1));
+    ctx.fillText("250",convert_x1(250), axis_y(0.1));
+    ctx.fillText("2000",convert_x1(2000), axis_y(0.1));
+    ctx.fillText("7000",convert_x1(7000), axis_y(0.1));
+    ctx.textAlign = "end";
+    ctx.fillText("2000",axis_x(0.1), convert_y(2000));
+    ctx.fillText("3125",axis_x(0.22), convert_y(3000));
+    ctx.fillText("3500",axis_x(0.1), convert_y(3500));
+
+    axis_draw1();
+    dot1(volumn, pressure);
+}
+
+function figure8(volumn, pressure){
+    var c = document.getElementById("line");    
+    var ctx = c.getContext("2d");
+    ctx.clearRect(0, 0, 550, 370);
+    
+    not_regulate();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(25), convert_y(1000000));
+    ctx.lineTo(convert_x(25), convert_y(8000));
+    ctx.lineTo(convert_x(2000), convert_y(100));
+    ctx.lineTo(convert_x(10000), convert_y(100));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(25), convert_y(50000));
+    ctx.lineTo(convert_x(10000), convert_y(50000));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(200), convert_y(1000));
+    ctx.lineTo(convert_x(10000), convert_y(1000));
+    ctx.stroke();
+
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#ff6701";
+    ctx.textAlign = "start";
+    ctx.textBaseline = "middle";
+    ctx.fillText("I",convert_x(2000), convert_y(200));
+    ctx.fillText("II",convert_x(2000), convert_y(8000));
+    ctx.fillText("III",convert_x(2000), convert_y(100000));
+    ctx.fillText("SEP",convert_x(5), convert_y(1500));
+
+    ctx.fillText("25",convert_x(25), axis_y(0.1));
+    ctx.fillText("200",convert_x(200), axis_y(0.1));
+    ctx.fillText("2000",convert_x(2000), axis_y(0.1));
+    ctx.textAlign = "end";
+    ctx.fillText("50000",axis_x(0.1), convert_y(50000));
+
+    axis_draw();
+    dot(volumn, pressure);
+}
+
+function figure9(volumn, pressure){
+    var c = document.getElementById("line");    
+    var ctx = c.getContext("2d");
+    ctx.clearRect(0, 0, 550, 370);
+    
+    not_regulate();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(200), convert_y(1000000));
+    ctx.lineTo(convert_x(200), convert_y(2500));
+    ctx.lineTo(convert_x(500), convert_y(1000));
+    ctx.lineTo(convert_x(10000), convert_y(1000));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(convert_x(200), convert_y(50000));
+    ctx.lineTo(convert_x(10000), convert_y(50000));
+    ctx.stroke();
+
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#ff6701";
+    ctx.textAlign = "start";
+    ctx.textBaseline = "middle";
+    ctx.fillText("I",convert_x(2000), convert_y(8000));
+    ctx.fillText("II",convert_x(2000), convert_y(100000));
+    ctx.fillText("SEP",convert_x(15), convert_y(1500));
+
+    ctx.fillText("200",convert_x(200), axis_y(0.1));
+    ctx.fillText("500",convert_x(500), axis_y(0.1));
+    ctx.textAlign = "end";
+    ctx.fillText("2500",axis_x(0.1), convert_y(2500));
+    
+    axis_draw();
+    dot(volumn, pressure);
+}
+
+
+function myfunction(){
+    var equip_type = $('#equip_type').val();
+    var fluid_state = $('#fluid_state').val();
+    var fluid_group = $('#fluid_group').val();
+    var volumn = $('#volumn').val();
+    var pressure = $('#pressure').val();
+    if(equip_type == 'steam_generator' && volumn != '' && pressure != ''){
+        $('.warnning').hide();
+        $.ajax({
+            headers: {'X-CSRFToken': csrftoken},
+            type: "POST",
+            url:  "/generate",
+            data: {
+                'equip_type': equip_type,
+                'volumn': volumn,
+                'pressure': pressure
+            },
+            success: function (response) {
+                console.log(response['result'], response['figure']);
+                var result = response['result'];
+                var figure = response['figure'];
+                var result_volumn = response['volumn'];
+                var result_pressure = response['pressure']
+                for(i = 0; i < 6; i++){
+                    if(result == i){
+                        $('.result' + i).show();
+                    }
+                    if(result != i){
+                        $('.result' + i).hide();
+                    }
+                }
+                
+                if(figure == 'figure1'){
+                    figure1(result_volumn, result_pressure)
+                }else if(figure == 'figure2'){
+                    figure2(result_volumn, result_pressure)
+                }else if(figure == 'figure3'){
+                    figure3(result_volumn, result_pressure)
+                }else if(figure == 'figure4'){
+                    figure4(result_volumn, result_pressure)
+                }else if(figure == 'figure5'){
+                    figure5(result_volumn, result_pressure);
+                }else if(figure == 'figure6'){
+                    figure6(result_volumn, result_pressure)
+                }else if(figure == 'figure7'){
+                    figure7(result_volumn, result_pressure)
+                }else if(figure == 'figure8'){
+                    figure8(result_volumn, result_pressure)
+                }else if(figure == 'figure9'){
+                    figure9(result_volumn, result_pressure)
+                }
+            }
+        });
+    }
+    else if(equip_type == 'steam_generator' && (volumn == '' || pressure == '')){
+        $('.warnning').show();
+        $('*[class^="result"]').hide();
+    }
+    else if(equip_type == '' || equip_type == 'none' || fluid_state == 'none' || fluid_group =='none' || volumn == '' || pressure == ''){
+        $('.warnning').show();
+        $('*[class^="result"]').hide();
+        return 0;
+    }
+    else{
+        $('.warnning').hide();
+        $.ajax({
+            headers: {'X-CSRFToken': csrftoken},
+            type: "POST",
+            url:  "/generate",
+            data: {
+                'equip_type': equip_type,
+                'fluid_state': fluid_state,
+                'fluid_group': fluid_group,
+                'volumn': volumn,
+                'pressure': pressure
+            },
+            success: function (response) {
+                var result = response['result'];
+                var figure = response['figure'];
+                var result_volumn = response['volumn'];
+                var result_pressure = response['pressure'];
+                for(i = 0; i < 6; i++){
+                    if(result == i){
+                        $('.result' + i).show();
+                    }
+                    if(result != i){
+                        $('.result' + i).hide();
+                    }
+                }
+
+                if(figure == 'figure1'){
+                    figure1(result_volumn, result_pressure)
+                }else if(figure == 'figure2'){
+                    figure2(result_volumn, result_pressure)
+                }else if(figure == 'figure3'){
+                    figure3(result_volumn, result_pressure)
+                }else if(figure == 'figure4'){
+                    figure4(result_volumn, result_pressure)
+                }else if(figure == 'figure5'){
+                    figure5(result_volumn, result_pressure);
+                }else if(figure == 'figure6'){
+                    figure6(result_volumn, result_pressure)
+                }else if(figure == 'figure7'){
+                    figure7(result_volumn, result_pressure)
+                }else if(figure == 'figure8'){
+                    figure8(result_volumn, result_pressure)
+                }else if(figure == 'figure9'){
+                    figure9(result_volumn, result_pressure)
+                }
+            }
+        });
+    }
+}
+</script>
+{% endblock %}
